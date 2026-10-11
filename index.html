@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1a">
+<meta name="app-version" content="1b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -264,7 +264,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1a';
+  var APP_VERSION = '1b';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -310,28 +310,43 @@
     if (ok) e.right = (e.right || 0) + 1; else e.wrong = (e.wrong || 0) + 1;
     e.last = ok ? 'right' : 'wrong'; e.ts = Date.now(); mem[id] = e; saveMem(mem);
   }
-  function letterScore(id) {
-    var e = loadMem()[id];
-    if (!e || !e.attempts) return 100;
-    if ((e.right || 0) > 0 && (e.wrong || 0) === 0) return -50;
-    return (e.wrong || 0) * 10 - (e.right || 0) * 3 + (e.attempts < 2 ? 20 : 0);
+  function memEntry(id) { return loadMem()[id] || null; }
+  /** Correct in a previous session → mastered, exclude entirely. */
+  function isMastered(id) {
+    var e = memEntry(id);
+    return !!(e && (e.right || 0) > 0);
+  }
+  /** Priority among remaining: never-asked first, then wrong (more wrongs higher). */
+  function letterPriority(id) {
+    var e = memEntry(id);
+    if (!e || !e.attempts) return 1000 + Math.random(); // never asked
+    if ((e.right || 0) > 0) return -9999; // mastered (should be filtered out)
+    return 100 + (e.wrong || 0) * 10 + Math.random(); // asked but wrong
+  }
+  function unmasteredIn(group) {
+    return group.filter(function (c) { return !isMastered(c.id); });
   }
   function pickFromGroup(group, lastId) {
-    var scored = group.map(function (c) {
-      return { c: c, s: letterScore(c.id) + (lastId && c.id === lastId ? -5 : 0) + Math.random() * 2 };
+    var pool = unmasteredIn(group);
+    if (!pool.length) return null;
+    var scored = pool.map(function (c) {
+      return { c: c, s: letterPriority(c.id) + (lastId && c.id === lastId ? -5 : 0) };
     });
     scored.sort(function (a, b) { return b.s - a.s; });
-    var nonMaster = scored.filter(function (x) { return x.s > -40; });
-    return (nonMaster.length ? nonMaster : scored)[0].c;
+    return scored[0].c;
   }
   function orderGroupQuiz(group) {
-    var remaining = group.slice(), order = [], last = null;
+    var remaining = unmasteredIn(group), order = [], last = null;
     while (remaining.length) {
       var c = pickFromGroup(remaining, last);
-      remaining.splice(remaining.indexOf(c), 1);
+      if (!c) break;
+      remaining = remaining.filter(function (x) { return x.id !== c.id; });
       order.push(c); last = c.id;
     }
     return order;
+  }
+  function anyUnmastered() {
+    return LETTERS.some(function (c) { return !isMastered(c.id); });
   }
 
   var T = window.__ls = { log: [], scene: 'start', speed: SPEED, voice: null, reduceMotion: false, version: APP_VERSION };
@@ -522,7 +537,9 @@
     if (l.indexOf('en') !== 0) return -1;
     s = l === 'en-us' ? 100 : l === 'en-gb' ? 95 : 80;
     if (/premium/i.test(n)) s += 30; else if (/enhanced/i.test(n)) s += 20;
-    if (/samantha|ava|allison|susan|karen|serena|google us english|microsoft (aria|jenny|ana)/i.test(n)) s += 10;
+    if (/microsoft aria|aria/i.test(n)) s += 25;
+    else if (/samantha|ava|allison|susan|karen|serena|jenny|google us english/i.test(n)) s += 12;
+    if (/ana|cartoon|novelty|kids?/i.test(n) && !/aria/i.test(n)) s -= 40;
     if (v.localService) s += 2;
     if (NOVELTY.test(n)) s -= 60;
     return s;
@@ -813,25 +830,34 @@
       els[c.id].classList.add('pop-in');
     });
     await wait(700, g);
-    caption('打橫部機，會更好玩！' + EN("Turn sideways — more fun!"));
-    await say('打橫部機，會更好玩', g, { clip: 'landscape' });
-    await wait(150, g);
-    await say("Turn the phone sideways — it's more fun!", g, { clip: 'landscape-en', lang: 'en', pitch: 1.3, rate: 0.9 });
-    await wait(250, g);
+    // Landscape tip is on-screen text on the start page only (no VO).
     caption('一齊學英文字母！' + EN("Let's learn the ABCs!"));
     await say('一齊學英文字母', g, { clip: 'lets-learn' });
     await wait(150, g);
-    await say("Let's learn the ABCs", g, { clip: 'lets-learn-en', lang: 'en', pitch: 1.3, rate: 0.9 });
+    await say("Let's learn the ABCs", g, { clip: 'lets-learn-en', lang: 'en', pitch: 1.0, rate: 0.95 });
     await wait(300, g);
     caption('');
   }
 
   async function quiz(g) {
     setScene('quiz'); stage.className = 'closed';
+    if (!anyUnmastered()) {
+      log({ t: 'all-mastered' });
+      caption('做得好好！' + EN('All done!'));
+      await wait(600, g);
+      caption('');
+      return;
+    }
     for (var gi = 0; gi < GROUPS.length; gi++) {
-      var group = GROUPS[gi];
-      showGroup(group);
-      group.forEach(function (c, i) {
+      var full = GROUPS[gi];
+      var pool = unmasteredIn(full);
+      if (!pool.length) {
+        log({ t: 'group-skip', group: gi + 1, reason: 'mastered' });
+        continue; // skip group with no remaining letters
+      }
+      // Show only not-yet-mastered letters as options in this group
+      showGroup(pool);
+      pool.forEach(function (c, i) {
         var b = els[c.id];
         b.className = 'letter pop-in';
         b.style.visibility = '';
@@ -841,48 +867,50 @@
       caption('第' + (gi + 1) + '組' + EN('Group ' + (gi + 1)));
       await wait(800, g);
       caption('');
-      var order = orderGroupQuiz(group);
-      for (var qi = 0; qi < order.length; qi++) {
-        var c = order[qi];
-        state.lastId = c.id;
-        state.target = c;
-        log({ t: 'call', id: c.id, group: gi + 1 });
-        for (var attempt = 1; attempt <= MAX_TRIES; attempt++) {
-          clearHl();
-          caption('邊個係' + c.L + '？' + EN('Which is ' + c.L + '?'), c);
-          log({ t: 'ask', id: c.id, attempt: attempt });
-          await say('邊個係' + c.L, g, { id: c.id, clip: 'ask-' + c.id, rate: 0.8 });
-          await wait(250, g);
-          await say('Which is ' + c.L, g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.25, rate: 0.9 });
-          setOpen(true);
-          var res = await waitTap(g, ASK_WAIT_MS);
-          check(g);
-          setOpen(false);
-          if (res.correct) {
-            recordResult(c.id, true);
-            await celebrate(c, g);
-            break;
-          }
-          if (res.timeout) {
-            log({ t: 'silence', id: c.id, attempt: attempt });
-            caption('');
-            await wait(350, g);
-          } else {
-            var wj = jumper(res.num || res.letter);
-            retrigger(wj, 'nope');
-            buzz();
-            caption('');
-            setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
-            await wait(BUZZER_MS + 50, g);
-          }
-          if (attempt === MAX_TRIES) {
-            recordResult(c.id, false);
-            await fingerTap(c, g);
-          }
+      // Priority: never-asked first, then wrong; one letter then leave group
+      var c = orderGroupQuiz(pool)[0];
+      if (!c) continue;
+      state.lastId = c.id;
+      state.target = c;
+      log({ t: 'call', id: c.id, group: gi + 1 });
+      var gotRight = false;
+      for (var attempt = 1; attempt <= MAX_TRIES; attempt++) {
+        clearHl();
+        caption('邊個係' + c.L + '？' + EN('Which is ' + c.L + '?'), c);
+        log({ t: 'ask', id: c.id, attempt: attempt });
+        await say('邊個係' + c.L, g, { id: c.id, clip: 'ask-' + c.id, rate: 0.8 });
+        await wait(250, g);
+        await say('Which is ' + c.L + '?', g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.0, rate: 0.95 });
+        setOpen(true);
+        var res = await waitTap(g, ASK_WAIT_MS);
+        check(g);
+        setOpen(false);
+        if (res.correct) {
+          recordResult(c.id, true);
+          await celebrate(c, g);
+          gotRight = true;
+          break;
         }
-        state.target = null;
-        await wait(280, g);
+        if (res.timeout) {
+          log({ t: 'silence', id: c.id, attempt: attempt });
+          caption('');
+          await wait(350, g);
+        } else {
+          var wj = jumper(res.num || res.letter);
+          retrigger(wj, 'nope');
+          buzz();
+          caption('');
+          setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
+          await wait(BUZZER_MS + 50, g);
+        }
+        if (attempt === MAX_TRIES) {
+          recordResult(c.id, false);
+          await fingerTap(c, g);
+        }
       }
+      state.target = null;
+      log({ t: 'group-done', group: gi + 1, id: c.id, ok: gotRight });
+      await wait(280, g);
     }
     caption('');
   }
@@ -946,9 +974,9 @@
     setTimeout(function () { retrigger(j, 'spin'); }, 400 / SPEED);
     playSound('cheer', c);
     bubbles(c);
-    caption('耶，我係' + c.L + '！' + EN('Yay, I am ' + c.L + '!'), c);
+    caption('耶，我係' + c.L + '！' + EN('I am ' + c.L + '!'), c);
     log({ t: 'yay', id: c.id });
-    await say('耶，我係' + c.L, g, { id: c.id, clip: 'yay-' + c.id, pitch: 1.2, rate: 0.9 });
+    await say('I am ' + c.L, g, { id: c.id, clip: 'yay-' + c.id, lang: 'en', pitch: 1.25, rate: 0.95 });
     await wait(700, g);
     els[c.id].classList.remove('hl');
     await wait(250, g);
