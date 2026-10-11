@@ -6,7 +6,7 @@
 <title>Happy Alphabet 快樂字母</title>
 <meta name="description" content="快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1o">
+<meta name="app-version" content="1p">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -269,7 +269,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂字母', en: 'Happy Alphabet' };
-  var APP_VERSION = '1o';
+  var APP_VERSION = '1p';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -676,10 +676,16 @@
       try {
         stopVoice();
         var s = ctx.createBufferSource(); s.buffer = clipBuf[n]; s.connect(voiceBus);
-        var done = false, fin = function (r) { if (done) return; done = true; if (curSrc === s) curSrc = null; resolve(r || 'end'); };
+        var done = false, fin = function (r) {
+          if (done) return; done = true;
+          try { s.onended = null; s.stop(); } catch (e2) {}
+          if (curSrc === s) curSrc = null;
+          resolve(r || 'end');
+        };
         s.onended = function () { fin('end'); };
         curSrc = s; s.start(0);
-        setTimeout(function () { fin('timeout'); }, (clipBuf[n].duration * 1000 + 800) / SPEED);
+        // pad after clip ends; do NOT divide duration by SPEED or timeout cuts early and stacks audio
+        setTimeout(function () { fin('timeout'); }, clipBuf[n].duration * 1000 + 400);
       } catch (e) { resolve('throw'); }
     });
   }
@@ -874,7 +880,7 @@
     // Landscape tip is on-screen text on the start page only (no VO).
     caption('一齊學英文字母！' + EN("Let's learn the ABCs!"));
     await say('一齊學英文字母', g, { clip: 'lets-learn' });
-    await wait(150, g);
+    await wait(500, g); // v1p: clear gap — Chinese fully done before English
     await say("Let's learn the ABCs", g, { clip: 'lets-learn-en', lang: 'en', pitch: 1.0, rate: 0.95 });
     await wait(300, g);
     caption('');
