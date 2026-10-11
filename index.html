@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1h">
+<meta name="app-version" content="1i">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -271,7 +271,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1h';
+  var APP_VERSION = '1i';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -1024,23 +1024,22 @@
 
   async function celebrate(c, g) {
     var el = els[c.id];
-    el.classList.add('hl', 'done-ok');
+    el.classList.add('hl', 'done-ok'); // forward + bigger
     el.setAttribute('data-found', '1');
     var j = jumper(c);
-    // v1h: come forward (hl scale), hop, spin, then clap → whistle → letter name + bubbles
-    retrigger(j, 'hop');
-    setTimeout(function () { retrigger(j, 'spin'); }, 400 / SPEED);
-    bubbles(c);
     caption(c.L + '!', c);
     log({ t: 'yay', id: c.id });
+    // v1i: ALL celebration effects at once, then letter name only (no Yeah / I am)
+    retrigger(j, 'hop');
+    retrigger(j, 'spin');
+    bubbles(c);
     playSound('clap', c);
-    await wait(450, g);
     playSound('whistle', c);
-    await wait(350, g);
+    await wait(900, g); // let hop/spin/sfx land together
     await say(c.L, g, { id: c.id, clip: 'intro-' + c.id, lang: 'en', pitch: 1.25, rate: 0.95 });
-    await wait(500, g);
+    await wait(400, g);
     el.classList.remove('hl');
-    await wait(250, g);
+    await wait(200, g);
   }
 
   async function ending(g) {
