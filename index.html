@@ -6,7 +6,7 @@
 <title>Happy Alphabet 快樂字母</title>
 <meta name="description" content="快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1n">
+<meta name="app-version" content="1o">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -214,7 +214,6 @@
   <section id="start" class="screen parent" aria-labelledby="title">
     <h1 id="title" class="app-name"><span class="zh">快樂字母</span><span class="en" lang="en">Happy Alphabet</span></h1>
     <p class="sub">同小朋友一齊認英文字母 A–Z<span class="en-line" lang="en">Learn letters A–Z together with your child</span></p>
-    <div class="mini" id="startMini" aria-hidden="true"></div>
     <button id="startBtn" class="big-btn" type="button" aria-label="開始玩 Start">開始<span class="en-line" lang="en" aria-hidden="true">Start</span></button>
     <p class="note" id="voiceNote"></p>
     <p class="note">聽到邊個字母就撳邊個字母公仔！分成六組，全部做完會大慶祝。<span class="en-line" lang="en">Tap the letter mascot you hear! Six groups — a big celebration when all 26 are done.</span></p>
@@ -230,7 +229,6 @@
 
   <section id="again" class="screen parent" hidden aria-labelledby="againTitle">
     <h2 id="againTitle" tabindex="-1">玩完喇！<span class="en-line" lang="en">All done!</span></h2>
-    <div class="mini" id="endMini" aria-hidden="true"></div>
     <div class="btn-row">
       <button id="doneBtn" class="mid-btn" type="button" aria-label="完，唔玩喇 Done">完<span class="en-line" lang="en" aria-hidden="true">Done</span></button>
     </div>
@@ -271,7 +269,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂字母', en: 'Happy Alphabet' };
-  var APP_VERSION = '1n';
+  var APP_VERSION = '1o';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -373,7 +371,7 @@
     b.style.setProperty('--fg', c.fg);
     b.setAttribute('aria-label', c.L);  // v1e: plain letter only
     b.setAttribute('aria-disabled', 'true');
-    b.innerHTML = '<span class="jumper" aria-hidden="true"><span class="glyph">' + c.L + '</span><span class="face"><span class="eye"></span><span class="eye"></span></span></span>';
+    b.innerHTML = '<span class="jumper" aria-hidden="true"><span class="glyph">' + c.L + '</span></span>'; // v1o: no eye dots under letter
     b.addEventListener('click', function (e) { e.preventDefault(); onNumTap(c); });
     grid.appendChild(b); els[c.id] = b;
   });
@@ -392,7 +390,7 @@
       return '<span class="dot" style="background:' + c.body + ';color:' + c.fg + '">' + c.L + '</span>';
     }).join('');
   }
-  miniDots('startMini'); miniDots('endMini');
+  // v1o: removed mini dots + face dots under letters
 
   /* ---------- bubbles ---------- */
   var bubbleLayer = document.getElementById('bubbles');
