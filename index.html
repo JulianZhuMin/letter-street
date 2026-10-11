@@ -6,7 +6,7 @@
 <title>Happy Alphabet 快樂字母</title>
 <meta name="description" content="快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1r">
+<meta name="app-version" content="1s">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -265,7 +265,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂字母', en: 'Happy Alphabet' };
-  var APP_VERSION = '1r';
+  var APP_VERSION = '1s';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -632,6 +632,11 @@
   }
 
   /* ---------- clips ---------- */
+  function letterSpeak(L) {
+    if (L === 'A') return 'ay'; // v1s: long A like the word "ay"
+    if (L === 'Z') return 'Zed';
+    return L;
+  }
   var CLIP_NAMES = [];
   LETTERS.forEach(function (c) { CLIP_NAMES.push('ask-' + c.id, 'ask-' + c.id + '-en', 'yay-' + c.id, 'intro-' + c.id); });
   CLIP_NAMES.push('yeah', 'byebye', 'well-done', 'lets-learn', 'lets-learn-en', 'landscape', 'landscape-en', 'group-done');
@@ -905,7 +910,7 @@
         playSound('pop', introC);
         caption(introC.L, introC);
         log({ t: 'intro', id: introC.id, group: gi + 1 });
-        await say(introC.L === 'Z' ? 'Zed' : introC.L, g, { id: introC.id, clip: 'intro-' + introC.id, lang: 'en', pitch: 1.15, rate: 0.75 });
+        await say(letterSpeak(introC.L), g, { id: introC.id, clip: 'intro-' + introC.id, lang: 'en', pitch: 1.15, rate: 0.75 });
         await wait(1000, g);
       }
       caption('');
@@ -926,7 +931,7 @@
         caption('邊個係' + c.L + '？' + EN('Which is ' + c.L + '?'), c);
         log({ t: 'ask', id: c.id, attempt: attempt });
         // v1c: quiz VO English host only (no Chinese ask voice-over); caption stays bilingual
-        await say('Which is ' + c.L + '?', g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.0, rate: 0.95 });
+        await say('Which is ' + letterSpeak(c.L) + '?', g, { id: c.id, clip: 'ask-' + c.id + '-en', lang: 'en', pitch: 1.0, rate: 0.95 });
         setOpen(true);
         var res = await waitTap(g, ASK_WAIT_MS);
         check(g);
@@ -1027,7 +1032,7 @@
     playSound('whistle', c);
     // v1n: wait until clap+full whistle finish before letter speech (so sfx is not cut off)
     await wait(1100, g);
-    await say(c.L === 'Z' ? 'Zed' : c.L, g, { id: c.id, clip: 'intro-' + c.id, lang: 'en', pitch: 1.15, rate: 0.75 });
+    await say(letterSpeak(c.L), g, { id: c.id, clip: 'intro-' + c.id, lang: 'en', pitch: 1.15, rate: 0.75 });
     await wait(400, g);
     el.classList.remove('hl');
     await wait(200, g);
