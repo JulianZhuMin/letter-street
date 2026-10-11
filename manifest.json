@@ -1,7 +1,7 @@
 {
-  "name": "Letter's Street 字母街",
-  "short_name": "字母街",
-  "description": "字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）",
+  "name": "Happy Alphabet 快樂字母",
+  "short_name": "快樂字母",
+  "description": "快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）",
   "lang": "zh-HK",
   "start_url": "./index.html",
   "scope": "./",
