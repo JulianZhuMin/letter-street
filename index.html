@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1e">
+<meta name="app-version" content="1f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -267,7 +267,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1e';
+  var APP_VERSION = '1f';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -297,8 +297,9 @@
   });
   var NUMBERS = LETTERS; // alias so leftover helpers keep working
   var GROUPS = [
+    // v1f: 4+4+4+4+5+5 (A–D … M–P, Q–U, V–Z)
     LETTERS.slice(0, 4), LETTERS.slice(4, 8), LETTERS.slice(8, 12),
-    LETTERS.slice(12, 16), LETTERS.slice(16, 20), LETTERS.slice(20, 26)
+    LETTERS.slice(12, 16), LETTERS.slice(16, 21), LETTERS.slice(21, 26)
   ];
   var byId = {}; LETTERS.forEach(function (c) { byId[c.id] = c; });
 
@@ -605,7 +606,7 @@
 
   /* ---------- clips ---------- */
   var CLIP_NAMES = [];
-  LETTERS.forEach(function (c) { CLIP_NAMES.push('ask-' + c.id, 'ask-' + c.id + '-en', 'yay-' + c.id); });
+  LETTERS.forEach(function (c) { CLIP_NAMES.push('ask-' + c.id, 'ask-' + c.id + '-en', 'yay-' + c.id, 'intro-' + c.id); });
   CLIP_NAMES.push('yeah', 'byebye', 'well-done', 'lets-learn', 'lets-learn-en', 'landscape', 'landscape-en', 'group-done');
   var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
   T.clips = clipState;
@@ -862,16 +863,32 @@
       }
       // Show only not-yet-mastered letters as options in this group
       showGroup(pool);
-      pool.forEach(function (c, i) {
+      // v1f: start hidden; each letter pops in and intros with cartoon "I am X"
+      pool.forEach(function (c) {
         var b = els[c.id];
-        b.className = 'letter pop-in';
-        b.style.visibility = '';
-        b.style.animationDelay = (i * 0.06 / SPEED) + 's';
+        b.className = 'letter';
+        b.style.visibility = 'hidden';
+        b.style.animationDelay = '';
         b.querySelector('.jumper').className = 'jumper';
       });
       caption('第' + (gi + 1) + '組' + EN('Group ' + (gi + 1)));
-      await wait(800, g);
+      await wait(350, g);
+      for (var ii = 0; ii < pool.length; ii++) {
+        var introC = pool[ii];
+        var ib = els[introC.id];
+        ib.style.visibility = '';
+        ib.classList.remove('pop-in');
+        void ib.offsetWidth;
+        ib.classList.add('pop-in');
+        playSound('pop', introC);
+        caption('I am ' + introC.L + '!', introC);
+        log({ t: 'intro', id: introC.id, group: gi + 1 });
+        // cartoon/kid AnaNeural — NOT "Yeah, I am" (Yeah is for correct answers)
+        await say('I am ' + introC.L, g, { id: introC.id, clip: 'intro-' + introC.id, lang: 'en', pitch: 1.25, rate: 0.95 });
+        await wait(160, g);
+      }
       caption('');
+      await wait(320, g); // stand together in a row, then host asks
       // Priority: never-asked first, then wrong; one letter then leave group
       var c = orderGroupQuiz(pool)[0];
       if (!c) continue;
