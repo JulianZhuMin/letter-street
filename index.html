@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1g">
+<meta name="app-version" content="1h">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -96,6 +96,10 @@
     box-shadow: 0 6px 0 var(--line), 0 10px 16px rgba(0,0,0,.15);
     transform: scale(.92); transition: transform calc(.3s / var(--spd)) cubic-bezier(.3,1.6,.5,1);
     display: flex; align-items: center; justify-content: center; }
+  /* v1h: mascots not tappable until host finishes asking */
+  .letter.locked, #stage.closed .letter { pointer-events: none !important; }
+  #stage.open .letter:not(.locked):not(.hidden-slot) { pointer-events: auto; }
+  .letter.hl { z-index: 4; transform: translateY(-6%) scale(1.18); }
   .letter.hidden-slot { visibility: hidden; pointer-events: none; width:0; height:0; margin:0; padding:0; overflow:hidden; box-shadow:none; }
   #stage.open .letter, #stage.open .num { transform: scale(1); filter: drop-shadow(0 3px 3px rgba(0,0,0,.12)); }
   .letter .jumper, .num .jumper { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 50%; position: relative; }
@@ -267,7 +271,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1g';
+  var APP_VERSION = '1h';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -499,6 +503,32 @@
       };
       whistle(t + 0.55, 0.3, 1050, 1500, 1450, 0.15);
       whistle(t + 0.9, 0.7, 1300, 2000, 1650, 0.14);
+    } else if (kind === 'clap') {
+      if (!noiseBuf) {
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        var ndc = noiseBuf.getChannelData(0); for (var nci = 0; nci < ndc.length; nci++) ndc[nci] = Math.random() * 2 - 1;
+      }
+      var clap1 = function (t0, vol, fc) {
+        var src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), cg = ctx.createGain();
+        src.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = fc; bp.Q.value = 1.1;
+        cg.gain.setValueAtTime(0.0001, t0); cg.gain.exponentialRampToValueAtTime(vol, t0 + 0.002);
+        cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+        src.connect(bp); bp.connect(cg); cg.connect(master);
+        src.start(t0, Math.random() * 0.8, 0.12);
+      };
+      for (var cj = 0; cj < 5; cj++) {
+        var ctt = t + cj * 0.09;
+        clap1(ctt, 0.75 - cj * 0.08, 1100 + Math.random() * 500);
+      }
+    } else if (kind === 'whistle') {
+      var wo = ctx.createOscillator(), wg = ctx.createGain(), wl = ctx.createOscillator(), wlg = ctx.createGain();
+      wo.type = 'sine';
+      wo.frequency.setValueAtTime(1050, t); wo.frequency.exponentialRampToValueAtTime(1500, t + 0.12);
+      wo.frequency.exponentialRampToValueAtTime(1450, t + 0.28);
+      wl.frequency.value = 6.5; wlg.gain.value = 18; wl.connect(wlg); wlg.connect(wo.frequency);
+      wg.gain.setValueAtTime(0.0001, t); wg.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
+      wg.gain.setValueAtTime(0.16, t + 0.2); wg.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+      wo.connect(wg); wg.connect(master); wo.start(t); wl.start(t); wo.stop(t + 0.35); wl.stop(t + 0.35);
     } else if (kind === 'bye') {
       [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
     } else if (kind === 'buzzer') {
@@ -697,10 +727,14 @@
   function jumper(c) { return els[c.id].querySelector('.jumper'); }
   function setScene(name) { T.scene = name; log({ t: 'scene', name: name }); }
   function setOpen(open) {
-    state.open = open;
-    stage.classList.toggle('open', open); stage.classList.toggle('closed', !open);
+    state.open = !!open;
+    stage.classList.toggle('open', !!open); stage.classList.toggle('closed', !open);
     var active = state.activeGroup || LETTERS;
-    active.forEach(function (c) { els[c.id].setAttribute('aria-disabled', open ? 'false' : 'true'); });
+    active.forEach(function (c) {
+      var el = els[c.id];
+      el.setAttribute('aria-disabled', open ? 'false' : 'true');
+      el.classList.toggle('locked', !open);
+    });
     log({ t: open ? 'open' : 'close' });
   }
   function showGroup(group) {
@@ -863,6 +897,7 @@
       }
       // Show only not-yet-mastered letters as options in this group
       showGroup(pool);
+      setOpen(false); // v1h: locked until host finishes asking
       // v1f: start hidden; each letter pops in and intros with cartoon "I am X"
       pool.forEach(function (c) {
         var b = els[c.id];
@@ -988,19 +1023,23 @@
   }
 
   async function celebrate(c, g) {
-    els[c.id].classList.add('hl', 'done-ok');
-    els[c.id].setAttribute('data-found', '1');
+    var el = els[c.id];
+    el.classList.add('hl', 'done-ok');
+    el.setAttribute('data-found', '1');
     var j = jumper(c);
+    // v1h: come forward (hl scale), hop, spin, then clap → whistle → letter name + bubbles
     retrigger(j, 'hop');
     setTimeout(function () { retrigger(j, 'spin'); }, 400 / SPEED);
-    playSound('cheer', c);   // includes short whistle 啾 with the Yeah line
     bubbles(c);
-    caption('Yeah, I am ' + c.L + '!', c);
+    caption(c.L + '!', c);
     log({ t: 'yay', id: c.id });
-    // v1d: cartoon kid "Yeah, I am X" (+ cheer whistle)
-    await say('Yeah, I am ' + c.L, g, { id: c.id, clip: 'yay-' + c.id, lang: 'en', pitch: 1.25, rate: 0.95 });
-    await wait(700, g);
-    els[c.id].classList.remove('hl');
+    playSound('clap', c);
+    await wait(450, g);
+    playSound('whistle', c);
+    await wait(350, g);
+    await say(c.L, g, { id: c.id, clip: 'intro-' + c.id, lang: 'en', pitch: 1.25, rate: 0.95 });
+    await wait(500, g);
+    el.classList.remove('hl');
     await wait(250, g);
   }
 
