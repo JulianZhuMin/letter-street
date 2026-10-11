@@ -6,7 +6,7 @@
 <title>Happy Alphabet 快樂字母</title>
 <meta name="description" content="快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1m">
+<meta name="app-version" content="1n">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -271,7 +271,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂字母', en: 'Happy Alphabet' };
-  var APP_VERSION = '1m';
+  var APP_VERSION = '1n';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -521,14 +521,17 @@
         clap1(ctt, 0.75 - cj * 0.08, 1100 + Math.random() * 500);
       }
     } else if (kind === 'whistle') {
+      // v1n: full whistle (not cut off mid-way)
       var wo = ctx.createOscillator(), wg = ctx.createGain(), wl = ctx.createOscillator(), wlg = ctx.createGain();
+      var wdur = 0.85;
       wo.type = 'sine';
-      wo.frequency.setValueAtTime(1050, t); wo.frequency.exponentialRampToValueAtTime(1500, t + 0.12);
-      wo.frequency.exponentialRampToValueAtTime(1450, t + 0.28);
-      wl.frequency.value = 6.5; wlg.gain.value = 18; wl.connect(wlg); wlg.connect(wo.frequency);
-      wg.gain.setValueAtTime(0.0001, t); wg.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
-      wg.gain.setValueAtTime(0.16, t + 0.2); wg.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
-      wo.connect(wg); wg.connect(master); wo.start(t); wl.start(t); wo.stop(t + 0.35); wl.stop(t + 0.35);
+      wo.frequency.setValueAtTime(1100, t);
+      wo.frequency.exponentialRampToValueAtTime(1900, t + wdur * 0.4);
+      wo.frequency.exponentialRampToValueAtTime(1550, t + wdur);
+      wl.frequency.value = 6.5; wlg.gain.value = 22; wl.connect(wlg); wlg.connect(wo.frequency);
+      wg.gain.setValueAtTime(0.0001, t); wg.gain.exponentialRampToValueAtTime(0.18, t + 0.05);
+      wg.gain.setValueAtTime(0.18, t + wdur * 0.75); wg.gain.exponentialRampToValueAtTime(0.0001, t + wdur);
+      wo.connect(wg); wg.connect(master); wo.start(t); wl.start(t); wo.stop(t + wdur + 0.05); wl.stop(t + wdur + 0.05);
     } else if (kind === 'bye') {
       [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
     } else if (kind === 'buzzer') {
@@ -1035,7 +1038,8 @@
     bubbles(c);
     playSound('clap', c);
     playSound('whistle', c);
-    await wait(900, g); // let hop/spin/sfx land together
+    // v1n: wait until clap+full whistle finish before letter speech (so sfx is not cut off)
+    await wait(1100, g);
     await say(c.L === 'Z' ? 'Zed' : c.L, g, { id: c.id, clip: 'intro-' + c.id, lang: 'en', pitch: 1.15, rate: 0.75 });
     await wait(400, g);
     el.classList.remove('hl');
