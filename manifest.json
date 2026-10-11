@@ -1,0 +1,18 @@
+{
+  "name": "Letter's Street 字母街",
+  "short_name": "字母街",
+  "description": "字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）",
+  "lang": "zh-HK",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#87CEEB",
+  "theme_color": "#7BC67E",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
