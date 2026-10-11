@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1i">
+<meta name="app-version" content="1j">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -271,7 +271,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1i';
+  var APP_VERSION = '1j';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -920,7 +920,7 @@
         log({ t: 'intro', id: introC.id, group: gi + 1 });
         // v1g: cartoon/kid letter name only; ~2s gap before next letter
         await say(introC.L, g, { id: introC.id, clip: 'intro-' + introC.id, lang: 'en', pitch: 1.25, rate: 0.95 });
-        await wait(2000, g);
+        await wait(1000, g); // v1j: 1s gap between intro letters
       }
       caption('');
       await wait(320, g); // stand together in a row, then host asks
