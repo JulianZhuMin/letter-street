@@ -6,7 +6,7 @@
 <title>Letter's Street 字母街</title>
 <meta name="description" content="字母街 Letter's Street：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1d">
+<meta name="app-version" content="1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -162,6 +162,9 @@
   #rotate .en { font-size: 14px; color: #6a5a50; }
   #rotate svg { width: 34px; height: 34px; animation: tilt 2.4s ease-in-out infinite; }
   @keyframes tilt { 0%,30% { transform: rotate(0); } 60%,100% { transform: rotate(-90deg); } }
+    /* v1e: landscape tip banner only before start — not during quiz rounds */
+  body.playing #rotate { display: none !important; }
+
   @media (orientation: portrait) {
     #rotate { display: flex; }
     #grid { width: min(92vw, 70vh); max-height: 55vh; }
@@ -264,7 +267,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '字母街', en: "Letter's Street" };
-  var APP_VERSION = '1d';
+  var APP_VERSION = '1e';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -363,7 +366,7 @@
     b.style.setProperty('--body', c.body);
     b.style.setProperty('--line', c.line);
     b.style.setProperty('--fg', c.fg);
-    b.setAttribute('aria-label', '字母 ' + c.L + ' letter ' + c.L);
+    b.setAttribute('aria-label', c.L);  // v1e: plain letter only
     b.setAttribute('aria-disabled', 'true');
     b.innerHTML = '<span class="jumper" aria-hidden="true"><span class="glyph">' + c.L + '</span><span class="face"><span class="eye"></span><span class="eye"></span></span></span>';
     b.addEventListener('click', function (e) { e.preventDefault(); onNumTap(c); });
@@ -765,6 +768,8 @@
     if (waveHand) waveHand.classList.remove('show');
   }
   function show(id) {
+    if (id === 'start' || id === 'again') document.body.classList.remove('playing');
+    if (id === 'game') document.body.classList.add('playing');
     ['start', 'game', 'again'].forEach(function (s) { document.getElementById(s).hidden = s !== id; });
   }
   function clearHl() { NUMBERS.forEach(function (c) { els[c.id].classList.remove('hl'); }); }
@@ -1021,6 +1026,7 @@
   }
 
   async function runGame(skipIntro) {
+    document.body.classList.add('playing');
     var g = ++gen;
     state.skipIntro = !!skipIntro; state.open = false; clearTimeout(state.hintTimer);
     log({ t: 'game', skipIntro: !!skipIntro });
