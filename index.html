@@ -6,7 +6,7 @@
 <title>Happy Alphabet 快樂字母</title>
 <meta name="description" content="快樂字母 Happy Alphabet：俾兩至四歲小朋友玩嘅廣東話認英文字母遊戲（A–Z）。A Cantonese ABC game for toddlers.">
 <meta name="theme-color" content="#7BC67E">
-<meta name="app-version" content="1p">
+<meta name="app-version" content="1q">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -85,14 +85,16 @@
   #caption .sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: .3em; vertical-align: -.05em; border: 3px solid #0000002e; }
 
   #stage { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 12vh 1.5vw max(2vh, env(safe-area-inset-bottom)); z-index:2; }
-  #grid { --gap: clamp(4px, 1vw, 12px);
-    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: var(--gap);
-    width: 100%; max-width: 98vw; max-height: 58vh; }
-  #grid.stairs { max-height: 72vh; }
+  #grid { --gap: clamp(2px, 0.6vw, 8px); --n: 5;
+    display: flex; flex-wrap: nowrap; align-items: flex-end; justify-content: center; gap: var(--gap);
+    width: 100%; max-width: 100vw; max-height: 58vh; overflow: hidden; }
+  #grid.stairs { max-height: 58vh; }
   .letter, .num { position: relative; border: 0; border-radius: 50%; cursor: pointer;
-    width: clamp(48px, min(12vw, 16vh), 96px); height: clamp(48px, min(12vw, 16vh), 96px); flex: 0 0 auto;
+    width: min(96px, max(26px, calc((100vw - (var(--n) + 1) * var(--gap) - 4vw) / var(--n))));
+    height: min(96px, max(26px, calc((100vw - (var(--n) + 1) * var(--gap) - 4vw) / var(--n))));
+    flex: 0 0 auto;
     background: var(--body); color: var(--fg, #fff); font-weight: 900;
-    font-size: clamp(22px, min(5.5vw, 8vh), 48px); line-height: 1;
+    font-size: clamp(11px, calc((100vw - (var(--n) + 1) * var(--gap) - 4vw) / var(--n) * 0.42), 48px); line-height: 1;
     box-shadow: 0 6px 0 var(--line), 0 10px 16px rgba(0,0,0,.15);
     transform: scale(.92); transition: transform calc(.3s / var(--spd)) cubic-bezier(.3,1.6,.5,1);
     display: flex; align-items: center; justify-content: center; }
@@ -171,18 +173,11 @@
 
   @media (orientation: portrait) {
     #rotate { display: flex; }
-    #grid { width: min(92vw, 70vh); max-height: 55vh; }
-    #grid.stairs { width: 96vw; max-height: 68vh; }
-    #grid.stairs .letter { width: clamp(28px, 11vw, 48px); height: clamp(28px, 11vw, 48px); font-size: clamp(14px, 5vw, 24px); box-shadow: 0 3px 0 var(--line); }
-    #grid.stairs .letter .face { display: none; }
     .big-btn { min-width: 70vw; font-size: clamp(24px, 5.5vh, 44px); }
     .parent h1, .parent h2 { font-size: clamp(22px, 5.5vh, 40px); }
     .parent { padding-bottom: 70px; }
   }
-  @media (orientation: landscape) {
-    #grid.stairs .letter { width: clamp(28px, 3.4vw, 48px); height: clamp(28px, 3.4vw, 48px); font-size: clamp(14px, 2vw, 26px); }
-    #grid.stairs .letter .face { display: none; }
-  }
+  /* v1q: portrait/landscape both single-row; letter size from --n */
 
   #finger { position: fixed; left: 0; top: 0; width: clamp(72px, 19vh, 140px); height: auto; z-index: 6; pointer-events: none; opacity: 0;
     transform-origin: 30% 10%; will-change: transform, opacity; }
@@ -269,7 +264,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂字母', en: 'Happy Alphabet' };
-  var APP_VERSION = '1p';
+  var APP_VERSION = '1q';
   var MEM_KEY = 'letterStreetMemory_v1';
   var BUZZER_MS = 550;
   var MAX_TRIES = 2;
@@ -747,9 +742,11 @@
   function showGroup(group) {
     state.activeGroup = group;
     grid.className = '';
-    grid.style.display = '';
+    grid.style.display = 'flex';
+    grid.style.flexWrap = 'nowrap';
     grid.style.gridTemplateColumns = '';
     grid.style.gridTemplateRows = '';
+    grid.style.setProperty('--n', String(Math.max(1, group.length)));
     LETTERS.forEach(function (c) {
       var b = els[c.id], on = group.some(function (g) { return g.id === c.id; });
       b.classList.toggle('hidden-slot', !on);
@@ -762,36 +759,18 @@
   function showAllStairs() {
     state.activeGroup = LETTERS;
     grid.className = 'stairs';
-    var isPortrait = window.matchMedia && matchMedia('(orientation: portrait)').matches;
-    LETTERS.forEach(function (c) {
+    grid.style.display = 'flex';
+    grid.style.flexWrap = 'nowrap';
+    grid.style.gridTemplateColumns = '';
+    grid.style.gridTemplateRows = '';
+    grid.style.setProperty('--n', '26');
+    LETTERS.forEach(function (c, i) {
       var b = els[c.id];
       b.classList.remove('hidden-slot');
       b.style.visibility = '';
+      b.style.gridRow = ''; b.style.gridColumn = ''; b.style.order = String(i);
       b.setAttribute('aria-hidden', 'false');
     });
-    if (isPortrait) {
-      grid.style.display = 'grid';
-      grid.style.gridTemplateColumns = 'repeat(6, 1fr)';
-      grid.style.gridTemplateRows = 'repeat(5, auto)';
-      grid.style.justifyItems = 'center';
-      grid.style.alignItems = 'end';
-      grid.style.gap = '4px 2px';
-      LETTERS.forEach(function (c, i) {
-        var row = Math.min(4, Math.floor(i / 5));
-        var col = (i % 5) + 1;
-        if (i >= 20) { row = 4; col = (i - 20) + 1; }
-        var offset = (row < 4) ? 1 : 0;
-        els[c.id].style.gridRow = String(row + 1);
-        els[c.id].style.gridColumn = String(col + offset);
-      });
-    } else {
-      grid.style.display = 'flex';
-      grid.style.flexWrap = 'nowrap';
-      LETTERS.forEach(function (c) {
-        els[c.id].style.gridRow = '';
-        els[c.id].style.gridColumn = '';
-      });
-    }
   }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function resetNums() {
